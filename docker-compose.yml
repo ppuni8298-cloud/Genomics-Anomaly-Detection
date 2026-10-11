@@ -1,0 +1,54 @@
+# ==============================================================================
+# GenomeAI — Full-Stack Container Orchestration (Local & Self-Hosted Production)
+# ==============================================================================
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: genomeai-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - ENVIRONMENT=development
+      - AUTH_SECRET=${AUTH_SECRET:-genome_ai_secret_key_session_auth_phase2_super_secure_32b_token}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      - SPARK_MASTER=local[*]
+      - SPARK_DRIVER_MEMORY=2g
+      - MAX_UPLOAD_SIZE_BYTES=52428800
+    volumes:
+      # Mount persistent database and uploads so data survives container recreation
+      - ./backend/data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    image: node:20-alpine
+    container_name: genomeai-frontend
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=file:/app/prisma/dev.db
+      - AUTH_SECRET=${AUTH_SECRET:-genome_ai_secret_key_session_auth_phase2_super_secure_32b_token}
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      - BACKEND_URL=http://backend:8000
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+      - SECURE_COOKIES=false
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    command: sh -c "npx prisma db push && npm run dev"
+    depends_on:
+      backend:
+        condition: service_healthy

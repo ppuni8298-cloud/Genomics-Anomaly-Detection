@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+:root {
+  --bg-deep: #050816;
+  --bg-card: #0B1026;
+  --electric-blue: #28D7FF;
+  --neon-violet: #8B5CF6;
+  --purple-accent: #C084FC;
+  --text-white: #F8FAFC;
+  --text-muted: #A7B1C8;
+}
+
+body {
+  background-color: var(--bg-deep);
+  color: var(--text-white);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  overflow-x: hidden;
+  selection-background-color: #8B5CF6;
+  selection-color: #ffffff;
+}
+
+/* Glassmorphism Styles */
+.glass-panel {
+  background: rgba(11, 16, 38, 0.7);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(40, 215, 255, 0.12);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-panel-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(15, 23, 52, 0.85);
+  border-color: rgba(139, 92, 246, 0.3);
+  box-shadow: 0 12px 40px -10px rgba(40, 215, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.glass-pill {
+  background: rgba(40, 215, 255, 0.08);
+  border: 1px solid rgba(40, 215, 255, 0.25);
+  backdrop-filter: blur(8px);
+}
+
+/* Gradient text utility */
+.text-gradient-cyan-violet {
+  background: linear-gradient(135deg, #28D7FF 0%, #C084FC 50%, #8B5CF6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-cyan {
+  background: linear-gradient(135deg, #F8FAFC 0%, #28D7FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Glow effects */
+.glow-cyan {
+  box-shadow: 0 0 25px -5px rgba(40, 215, 255, 0.4);
+}
+
+.glow-violet {
+  box-shadow: 0 0 25px -5px rgba(139, 92, 246, 0.4);
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #050816;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e2646;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #28D7FF;
+}
