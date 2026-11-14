@@ -63,6 +63,17 @@ const NAV_ITEMS = [
 export default function DashboardSidebar({ user, isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
 
+  const handleLogout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      window.location.href = '/login';
+    }
+  };
+
   const sidebarContent = (
     <div className="flex flex-col h-full bg-[#050816]/95 backdrop-blur-xl border-r border-[#28D7FF]/15 text-[#F8FAFC] select-none">
 
@@ -154,8 +165,8 @@ export default function DashboardSidebar({ user, isOpen = false, onClose }: Side
           </div>
         </div>
 
-        {/* Logout Form using standard server action / POST */}
-        <form action="/api/auth/logout" method="POST">
+        {/* Logout Form */}
+        <form action="/api/auth/logout" method="POST" onSubmit={handleLogout}>
           <button
             type="submit"
             className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-rose-300 bg-rose-500/10 border border-rose-500/25 hover:bg-rose-500/20 hover:border-rose-500/50 transition-all cursor-pointer"

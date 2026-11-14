@@ -157,8 +157,8 @@ export default function HistoryPage() {
           <GenomicVisualizations
             data={vizData}
             isLoading={isLoadingViz}
-            onDownloadReport={() => downloadAnalysisReport(selectedAnalysisId)}
-            onExportCsv={() => exportAnomaliesCsv(selectedAnalysisId)}
+            onBack={() => setSelectedAnalysisId(null)}
+            backButtonText="Collapse Visualizer"
           />
         </div>
       )}

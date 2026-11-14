@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { AnomalyRecord } from '@/lib/types/dashboard';
 import { getAnomalies, queryAnomalies, exportAnomaliesCsv } from '@/lib/services/genomicsService';
 import AnomalyTable from '@/components/dashboard/AnomalyTable';
+import ExportPreviewModal from '@/components/dashboard/ExportPreviewModal';
 import {
   ShieldAlert,
   Search,
@@ -23,6 +24,7 @@ export default function AnomaliesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [severityFilter, setSeverityFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -112,13 +114,12 @@ export default function AnomaliesPage() {
           </button>
 
           <button
-            onClick={handleExportCsv}
-            disabled={isExporting}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-mono border border-[#28D7FF]/30 bg-[#28D7FF]/10 text-[#28D7FF] hover:bg-[#28D7FF]/20 transition-all cursor-pointer disabled:opacity-50"
-            title="Download CSV export of detected anomalies"
+            onClick={() => setIsExportModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-mono border border-[#28D7FF]/30 bg-[#28D7FF]/10 text-[#28D7FF] hover:bg-[#28D7FF]/20 transition-all cursor-pointer"
+            title="Inspect anomaly data before downloading RFC-4180 CSV"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>{isExporting ? 'Exporting...' : 'Export CSV'}</span>
+            <span>Export CSV</span>
           </button>
 
           <Link
@@ -233,6 +234,13 @@ export default function AnomaliesPage() {
         minScoreFilter={minScore}
       />
 
+      {/* Export Preview Modal */}
+      <ExportPreviewModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        datasetName="All Datasets"
+        initialFormat="csv"
+      />
     </div>
   );
 }

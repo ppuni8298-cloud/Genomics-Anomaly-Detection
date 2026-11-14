@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Server,
 } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface HeaderProps {
   user: {
@@ -82,6 +83,17 @@ export default function DashboardHeader({ user, onOpenMobileMenu }: HeaderProps)
     });
   }, []);
 
+  const handleLogout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      window.location.href = '/login';
+    }
+  };
+
   return (
     <header className="sticky top-0 z-20 bg-[#050816]/90 backdrop-blur-md border-b border-[#28D7FF]/15 px-4 sm:px-6 lg:px-8 py-3.5">
       <div className="flex items-center justify-between gap-4">
@@ -114,7 +126,8 @@ export default function DashboardHeader({ user, onOpenMobileMenu }: HeaderProps)
         </div>
 
         {/* Right: Live System Status + User Menu */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <ThemeToggle />
 
           {/* Live System Status Indicator */}
           <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#0B1026] border border-[#28D7FF]/20 text-[11px] font-mono">
@@ -175,7 +188,7 @@ export default function DashboardHeader({ user, onOpenMobileMenu }: HeaderProps)
                     <span>Account Settings</span>
                   </Link>
 
-                  <form action="/api/auth/logout" method="POST">
+                  <form action="/api/auth/logout" method="POST" onSubmit={handleLogout}>
                     <button
                       type="submit"
                       className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-rose-300 hover:text-rose-200 hover:bg-rose-500/10 transition-colors cursor-pointer text-left"

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import FileUploadArea from '@/components/dashboard/FileUploadArea';
 import { uploadDataset, submitAnalysis } from '@/lib/services/genomicsService';
 import { AnalysisRecord } from '@/lib/types/dashboard';
+import { useAnalysis } from '@/context/AnalysisContext';
 import {
   Sparkles,
   Sliders,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 
 export default function NewAnalysisPage() {
+  const { activeJob, startAnalysis, dismissActiveJob } = useAnalysis();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [analysisName, setAnalysisName] = useState('');
   const [windowSize, setWindowSize] = useState('500');
@@ -31,15 +33,15 @@ export default function NewAnalysisPage() {
   const [randomSeed, setRandomSeed] = useState('42');
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Real execution state
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processingStep, setProcessingStep] = useState<string>('');
-  const [completedAnalysis, setCompletedAnalysis] = useState<AnalysisRecord | null>(null);
+  const isProcessing = activeJob?.status === 'running';
+  const processingStep = activeJob?.step || '';
+  const completedAnalysis = activeJob?.status === 'completed' ? activeJob.result : null;
 
   const handleStartAnalysis = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
-    setCompletedAnalysis(null);
+
+    if (isProcessing) return;
 
     if (!selectedFile) {
       setFormError('Please select a valid FASTA or CSV sequence file before starting analysis.');
@@ -87,17 +89,9 @@ export default function NewAnalysisPage() {
       return;
     }
 
-    setIsProcessing(true);
-
     try {
-      // Step 1: Upload dataset to backend
-      setProcessingStep('1/3: Ingesting dataset and validating sequence integrity...');
-      const ds = await uploadDataset(selectedFile, `Uploaded from console: ${analysisName}`);
-
-      // Step 2: Submit PySpark feature extraction & anomaly detection
-      setProcessingStep('2/3: Partitioning sequence & executing PySpark + Isolation Forest pipeline...');
-      const result = await submitAnalysis({
-        datasetId: ds.id,
+      await startAnalysis({
+        file: selectedFile,
         name: analysisName.trim(),
         windowSize: wSize,
         windowStep: wStep,
@@ -105,15 +99,9 @@ export default function NewAnalysisPage() {
         contaminationRate: cRate,
         randomSeed: rSeed,
       });
-
-      // Step 3: Finished
-      setProcessingStep('3/3: Pipeline complete! Storing detected loci...');
-      setCompletedAnalysis(result);
     } catch (err: any) {
       console.error('Analysis failed:', err);
       setFormError(err.message || 'Analysis pipeline execution failed. Ensure the FastAPI backend is running on port 8000.');
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -191,7 +179,7 @@ export default function NewAnalysisPage() {
 
             <button
               onClick={() => {
-                setCompletedAnalysis(null);
+                dismissActiveJob();
                 setSelectedFile(null);
                 setAnalysisName('');
               }}

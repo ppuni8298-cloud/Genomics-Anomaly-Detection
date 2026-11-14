@@ -12,7 +12,10 @@ import {
   Database,
   Cpu,
   Info,
+  Sun,
+  Moon,
 } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
 
 interface SettingsContentProps {
   user: {
@@ -25,14 +28,12 @@ interface SettingsContentProps {
 
 export default function SettingsContent({ user, sessionId }: SettingsContentProps) {
   const [reducedMotion, setReducedMotion] = useState(false);
-  const [themeMode, setThemeMode] = useState('dark-navy');
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedMotion = localStorage.getItem('genome_reduced_motion') === 'true';
       setReducedMotion(savedMotion);
-      const savedTheme = localStorage.getItem('genome_theme_mode') || 'dark-navy';
-      setThemeMode(savedTheme);
     }
   }, []);
 
@@ -44,10 +45,14 @@ export default function SettingsContent({ user, sessionId }: SettingsContentProp
     }
   };
 
-  const handleThemeChange = (mode: string) => {
-    setThemeMode(mode);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('genome_theme_mode', mode);
+  const handleLogout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      window.location.href = '/login';
     }
   };
 
@@ -202,7 +207,7 @@ export default function SettingsContent({ user, sessionId }: SettingsContentProp
             Sign out of this computer and invalidate current database session token.
           </span>
 
-          <form action="/api/auth/logout" method="POST">
+          <form action="/api/auth/logout" method="POST" onSubmit={handleLogout}>
             <button
               type="submit"
               className="px-4 py-2.5 rounded-xl text-xs font-semibold text-rose-300 bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 hover:border-rose-500/60 transition-all flex items-center gap-2 cursor-pointer"
@@ -231,33 +236,35 @@ export default function SettingsContent({ user, sessionId }: SettingsContentProp
             <div>
               <span className="text-xs font-bold text-white block">Theme Palette</span>
               <span className="text-[11px] text-[#A7B1C8]">
-                Console dark mode background and biotech accent gradients.
+                Toggle between Dark Biotech theme and Clean Light Laboratory mode across landing, auth, and dashboard.
               </span>
             </div>
 
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => handleThemeChange('dark-navy')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                  themeMode === 'dark-navy'
-                    ? 'bg-[#28D7FF]/20 border border-[#28D7FF] text-white shadow-sm'
+                onClick={() => setTheme('dark')}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                  theme === 'dark'
+                    ? 'bg-[#28D7FF]/20 border border-[#28D7FF] text-[#28D7FF] shadow-sm font-semibold'
                     : 'bg-white/5 text-[#A7B1C8] hover:text-white border border-transparent'
                 }`}
               >
-                Dark Navy (Default)
+                <Moon className="w-3.5 h-3.5" />
+                <span>Dark Mode</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleThemeChange('midnight-violet')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                  themeMode === 'midnight-violet'
-                    ? 'bg-[#8B5CF6]/20 border border-[#8B5CF6] text-white shadow-sm'
+                onClick={() => setTheme('light')}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                  theme === 'light'
+                    ? 'bg-amber-500/20 border border-amber-500 text-amber-500 shadow-sm font-semibold'
                     : 'bg-white/5 text-[#A7B1C8] hover:text-white border border-transparent'
                 }`}
               >
-                Midnight Violet
+                <Sun className="w-3.5 h-3.5" />
+                <span>Light Mode</span>
               </button>
             </div>
           </div>

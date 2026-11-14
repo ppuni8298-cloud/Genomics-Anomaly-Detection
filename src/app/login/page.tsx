@@ -19,6 +19,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { validateLoginInput, normalizeEmail } from '@/lib/validations';
+import ThemeToggle from '@/components/ThemeToggle';
 
 // Dynamically import 3D DNA Double Helix for side visual
 const DnaHelixCanvas = dynamic(() => import('@/components/3d/DnaHelixCanvas'), {
@@ -106,14 +107,17 @@ export default function LoginPage() {
           <span>Return to Landing Page</span>
         </Link>
 
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#28D7FF]/20 to-[#8B5CF6]/30 flex items-center justify-center border border-[#28D7FF]/30">
-            <Dna className="w-4 h-4 text-[#28D7FF]" />
-          </div>
-          <span className="font-bold text-lg text-white">
-            Genome<span className="text-[#28D7FF]">AI</span>
-          </span>
-        </Link>
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#28D7FF]/20 to-[#8B5CF6]/30 flex items-center justify-center border border-[#28D7FF]/30">
+              <Dna className="w-4 h-4 text-[#28D7FF]" />
+            </div>
+            <span className="font-bold text-lg text-white">
+              Genome<span className="text-[#28D7FF]">AI</span>
+            </span>
+          </Link>
+        </div>
       </header>
 
       {/* Main Two-Column Layout */}

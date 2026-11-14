@@ -14,13 +14,21 @@ import {
   Dna,
   CheckCircle2,
   HelpCircle,
+  ArrowLeft,
+  Maximize2,
+  Minimize2,
+  Table,
 } from 'lucide-react';
+import ExportPreviewModal from './ExportPreviewModal';
 
 interface GenomicVisualizationsProps {
   data: AnalysisVisualizationsData | null;
   isLoading?: boolean;
   onDownloadReport?: () => void;
   onExportCsv?: () => void;
+  onBack?: () => void;
+  backButtonText?: string;
+  allowFullscreen?: boolean;
 }
 
 export default function GenomicVisualizations({
@@ -28,9 +36,15 @@ export default function GenomicVisualizations({
   isLoading = false,
   onDownloadReport,
   onExportCsv,
+  onBack,
+  backButtonText = 'Back to Summary',
+  allowFullscreen = true,
 }: GenomicVisualizationsProps) {
   const [hoveredWindow, setHoveredWindow] = useState<WindowProfilePoint | null>(null);
   const [activeTab, setActiveTab] = useState<'anomaly-map' | 'gc-profile' | 'feature-comp'>('anomaly-map');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'csv' | 'markdown'>('csv');
 
   if (isLoading) {
     return (
@@ -46,6 +60,16 @@ export default function GenomicVisualizations({
   if (!data || !data.windowsMap || data.windowsMap.length === 0) {
     return (
       <div className="rounded-3xl glass-panel p-8 border border-white/10 text-center flex flex-col items-center justify-center min-h-[250px] space-y-3">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono border border-white/10 bg-white/5 text-[#A7B1C8] hover:text-white transition-all cursor-pointer mb-2"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>{backButtonText}</span>
+          </button>
+        )}
         <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#A7B1C8]">
           <Layers className="w-6 h-6" />
         </div>
@@ -83,57 +107,86 @@ export default function GenomicVisualizations({
   const minX = 0;
   const maxX = Math.max(windowsMap.length - 1, 1);
 
+  const openExportForm = (format: 'csv' | 'markdown') => {
+    setExportFormat(format);
+    setExportModalOpen(true);
+  };
+
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isFullscreen ? 'fixed inset-0 z-50 bg-[#050816] p-6 overflow-y-auto w-screen h-screen' : ''}`}>
 
       {/* Top Bar: Overview Metrics & Actions */}
       <div className="rounded-3xl glass-panel p-6 border border-[#28D7FF]/20 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-              <Activity className="w-5 h-5 text-[#28D7FF]" />
-              <span>Interactive Genomic Analytics: {data.datasetName}</span>
-            </h3>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#28D7FF]/10 text-[#28D7FF] border border-[#28D7FF]/30">
-              {totalWindows.toLocaleString()} Windows Sampled
-            </span>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono font-bold text-white bg-white/10 hover:bg-[#28D7FF]/20 hover:text-[#28D7FF] border border-white/15 transition-all cursor-pointer shrink-0 shadow-sm"
+              title="Return to analysis metrics summary"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#28D7FF]" />
+              <span>{backButtonText}</span>
+            </button>
+          )}
+
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                <Activity className="w-5 h-5 text-[#28D7FF]" />
+                <span>Interactive Genomic Analytics: {data.datasetName}</span>
+              </h3>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#28D7FF]/10 text-[#28D7FF] border border-[#28D7FF]/30">
+                {totalWindows.toLocaleString()} Windows Sampled
+              </span>
+            </div>
+            <p className="text-xs text-[#A7B1C8] mt-1 max-w-2xl">
+              Multi-dimensional sliding-window feature analysis using PySpark feature extraction and Scikit-learn Isolation Forest trees.
+            </p>
           </div>
-          <p className="text-xs text-[#A7B1C8] mt-1 max-w-2xl">
-            Multi-dimensional sliding-window feature analysis using PySpark feature extraction and Scikit-learn Isolation Forest trees.
-          </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          {onDownloadReport && (
+        <div className="flex flex-wrap items-center gap-2.5 self-end lg:self-auto">
+          {allowFullscreen && (
             <button
-              onClick={onDownloadReport}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono border border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 transition-all cursor-pointer"
-              title="Download comprehensive markdown analysis summary"
+              type="button"
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono border border-white/15 bg-white/5 text-[#A7B1C8] hover:text-white transition-all cursor-pointer"
+              title={isFullscreen ? 'Restore view' : 'Maximize to full screen'}
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Download Report (.md)</span>
+              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              <span>{isFullscreen ? 'Exit Full Screen' : 'Full Screen'}</span>
             </button>
           )}
 
-          {onExportCsv && (
-            <button
-              onClick={onExportCsv}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono border border-[#28D7FF]/30 bg-[#28D7FF]/10 text-[#28D7FF] hover:bg-[#28D7FF]/20 transition-all cursor-pointer"
-              title="Export raw detected anomalies as RFC-4180 CSV"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export CSV</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => openExportForm('markdown')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono border border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 transition-all cursor-pointer"
+            title="Inspect and download comprehensive markdown analysis report"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Download Report (.md)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => openExportForm('csv')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono border border-[#28D7FF]/30 bg-[#28D7FF]/10 text-[#28D7FF] hover:bg-[#28D7FF]/20 transition-all cursor-pointer"
+            title="Inspect anomaly data table before exporting as RFC-4180 CSV"
+          >
+            <Table className="w-3.5 h-3.5" />
+            <span>Export CSV</span>
+          </button>
         </div>
       </div>
 
       {/* Grid: Donut Breakdown + Tabbed Detailed Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
 
         {/* Left Card: Anomaly Severity Donut Distribution */}
-        <div className="rounded-3xl glass-panel p-6 border border-[#28D7FF]/20 flex flex-col justify-between space-y-6">
+        <div className="xl:col-span-4 rounded-3xl glass-panel p-6 border border-[#28D7FF]/20 flex flex-col justify-between space-y-6 min-w-0">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-white/5">
               <h4 className="text-sm font-bold text-white flex items-center gap-2">
@@ -146,7 +199,7 @@ export default function GenomicVisualizations({
             </div>
 
             {/* Donut Graphic */}
-            <div className="relative w-44 h-44 mx-auto my-4 flex items-center justify-center">
+            <div className="relative w-44 h-44 sm:w-48 sm:h-48 mx-auto my-4 flex items-center justify-center shrink-0">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                 {/* Background Ring */}
                 <circle
@@ -184,10 +237,10 @@ export default function GenomicVisualizations({
                 })()}
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-2xl font-bold font-mono text-white">
+                <span className="text-2xl sm:text-3xl font-bold font-mono text-white">
                   {highCount + medCount + lowCount}
                 </span>
-                <span className="text-[10px] uppercase font-mono text-[#A7B1C8]">
+                <span className="text-[10px] uppercase font-mono text-[#A7B1C8] tracking-wider">
                   Outliers
                 </span>
               </div>
@@ -198,10 +251,10 @@ export default function GenomicVisualizations({
               {donutSlices.map((s, idx) => (
                 <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-white/[0.02] border border-white/5">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
-                    <span className="text-[#A7B1C8] text-[11px]">{s.label}</span>
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                    <span className="text-[#A7B1C8] text-[11px] truncate">{s.label}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-right">
+                  <div className="flex items-center gap-2 text-right shrink-0">
                     <span className="text-white font-bold">{s.count.toLocaleString()}</span>
                     <span className="text-[#A7B1C8]/60 text-[10px] w-12 text-right">({s.percent.toFixed(1)}%)</span>
                   </div>
@@ -216,38 +269,41 @@ export default function GenomicVisualizations({
           </div>
         </div>
 
-        {/* Right 2 Columns: Main Interactive Visualizations (Anomaly Map / GC Profile / Feature Comp) */}
-        <div className="lg:col-span-2 rounded-3xl glass-panel p-6 border border-[#28D7FF]/20 space-y-5 flex flex-col justify-between">
+        {/* Right Columns: Main Interactive Visualizations (Anomaly Map / GC Profile / Feature Comp) */}
+        <div className="xl:col-span-8 rounded-3xl glass-panel p-6 border border-[#28D7FF]/20 space-y-5 flex flex-col justify-between min-w-0">
 
           <div>
             {/* Visualizer Mode Tabs */}
             <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-white/5">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => setActiveTab('anomaly-map')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer ${
                     activeTab === 'anomaly-map'
-                      ? 'bg-[#28D7FF]/20 border border-[#28D7FF] text-[#28D7FF]'
+                      ? 'bg-[#28D7FF]/20 border border-[#28D7FF] text-[#28D7FF] font-semibold'
                       : 'bg-white/5 text-[#A7B1C8] hover:text-white'
                   }`}
                 >
                   Window Anomaly Map
                 </button>
                 <button
+                  type="button"
                   onClick={() => setActiveTab('gc-profile')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer ${
                     activeTab === 'gc-profile'
-                      ? 'bg-purple-500/20 border border-purple-500 text-purple-300'
+                      ? 'bg-purple-500/20 border border-purple-500 text-purple-300 font-semibold'
                       : 'bg-white/5 text-[#A7B1C8] hover:text-white'
                   }`}
                 >
                   GC Content Profile
                 </button>
                 <button
+                  type="button"
                   onClick={() => setActiveTab('feature-comp')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer ${
                     activeTab === 'feature-comp'
-                      ? 'bg-emerald-500/20 border border-emerald-500 text-emerald-300'
+                      ? 'bg-emerald-500/20 border border-emerald-500 text-emerald-300 font-semibold'
                       : 'bg-white/5 text-[#A7B1C8] hover:text-white'
                   }`}
                 >
@@ -265,9 +321,9 @@ export default function GenomicVisualizations({
             {/* TAB 1: Window Anomaly Map */}
             {activeTab === 'anomaly-map' && (
               <div className="space-y-4 pt-2">
-                <div className="flex items-center justify-between text-xs text-[#A7B1C8]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-[#A7B1C8]">
                   <span className="font-mono">X-Axis: Genomic Coordinate Window | Y-Axis: Isolation Outlier Score (0.0 - 1.0)</span>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 shrink-0">
                     <span className="flex items-center gap-1 text-[11px]">
                       <span className="w-2 h-2 rounded-full bg-rose-500" /> Outlier (&ge; 0.70)
                     </span>
@@ -354,7 +410,7 @@ export default function GenomicVisualizations({
             {/* TAB 2: GC Content Profile */}
             {activeTab === 'gc-profile' && (
               <div className="space-y-4 pt-2">
-                <div className="flex items-center justify-between text-xs text-[#A7B1C8]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-[#A7B1C8]">
                   <span className="font-mono">X-Axis: Genomic Coordinate Window | Y-Axis: Local GC Content (%)</span>
                   <span className="text-[11px] font-mono text-purple-300">
                     Mean Dataset GC: {(windowsMap.reduce((acc, w) => acc + w.gcContent, 0) / windowsMap.length).toFixed(1)}%
@@ -495,7 +551,7 @@ export default function GenomicVisualizations({
 
                   {/* GC Skew */}
                   <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
-                    <span className="text-[10px] font-mono uppercase text-[#A7B1C8] block">GC Skew (G-C)/(G+C)</span>
+                    <span className="text-[10px] font-mono uppercase text-[#A7B1C8] block">GC Skew</span>
                     <div className="text-xs font-mono space-y-1">
                       <div className="flex justify-between">
                         <span className="text-emerald-400">Normal:</span>
@@ -510,7 +566,7 @@ export default function GenomicVisualizations({
 
                   {/* Homopolymer Repeat */}
                   <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
-                    <span className="text-[10px] font-mono uppercase text-[#A7B1C8] block">Max Homopolymer Run</span>
+                    <span className="text-[10px] font-mono uppercase text-[#A7B1C8] block">Max Homopolymer</span>
                     <div className="text-xs font-mono space-y-1">
                       <div className="flex justify-between">
                         <span className="text-emerald-400">Normal:</span>
@@ -543,6 +599,16 @@ export default function GenomicVisualizations({
         </div>
 
       </div>
+
+      {/* Export & Preview Form Modal */}
+      <ExportPreviewModal
+        isOpen={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        analysisId={data.analysisId}
+        analysisName={data.datasetName}
+        datasetName={data.datasetName}
+        initialFormat={exportFormat}
+      />
 
     </div>
   );

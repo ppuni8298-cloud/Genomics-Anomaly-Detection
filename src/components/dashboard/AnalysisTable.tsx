@@ -8,8 +8,23 @@ import EmptyState from './EmptyState';
 import ErrorBanner from './ErrorBanner';
 import InfoModal from './InfoModal';
 import GenomicVisualizations from './GenomicVisualizations';
-import { getAnalysisDetails, getAnalysisVisualizations, downloadAnalysisReport, exportAnomaliesCsv } from '@/lib/services/genomicsService';
-import { History, Eye, ArrowUpDown, Calendar, FileText, Cpu, AlertTriangle, Download, BarChart2, ShieldAlert } from 'lucide-react';
+import ExportPreviewModal from './ExportPreviewModal';
+import { useAnalysis } from '@/context/AnalysisContext';
+import { getAnalysisDetails, getAnalysisVisualizations } from '@/lib/services/genomicsService';
+import {
+  History,
+  Eye,
+  ArrowUpDown,
+  Calendar,
+  FileText,
+  Cpu,
+  AlertTriangle,
+  Download,
+  BarChart2,
+  ShieldAlert,
+  ArrowLeft,
+  Table,
+} from 'lucide-react';
 
 interface AnalysisTableProps {
   records: AnalysisRecord[];
@@ -27,11 +42,23 @@ export default function AnalysisTable({
   searchTerm = '',
   statusFilter = 'all',
 }: AnalysisTableProps) {
+  const { inspectedRecord, setInspectedRecord } = useAnalysis();
   const [selectedRecord, setSelectedRecord] = useState<AnalysisRecord | null>(null);
   const [recordDetails, setRecordDetails] = useState<AnalysisDetailRecord | null>(null);
   const [vizData, setVizData] = useState<AnalysisVisualizationsData | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [showVisualizer, setShowVisualizer] = useState(false);
+
+  // Export Preview Form state
+  const [exportPreviewOpen, setExportPreviewOpen] = useState(false);
+  const [exportPreviewFormat, setExportPreviewFormat] = useState<'csv' | 'markdown'>('csv');
+
+  // Sync with global inspectedRecord if triggered from background banner
+  useEffect(() => {
+    if (inspectedRecord) {
+      setSelectedRecord(inspectedRecord);
+    }
+  }, [inspectedRecord]);
 
   // Fetch details when selectedRecord changes
   useEffect(() => {
@@ -73,6 +100,17 @@ export default function AnalysisTable({
 
     return matchesSearch && matchesStatus;
   });
+
+  const handleCloseInspector = () => {
+    setSelectedRecord(null);
+    setInspectedRecord(null);
+    setShowVisualizer(false);
+  };
+
+  const openExportModal = (format: 'csv' | 'markdown') => {
+    setExportPreviewFormat(format);
+    setExportPreviewOpen(true);
+  };
 
   if (error) {
     return <ErrorBanner message={error} className="my-4" />;
@@ -185,19 +223,29 @@ export default function AnalysisTable({
         </table>
       </div>
 
-      {/* Analysis Details Modal */}
+      {/* Analysis Details & Inspector Modal */}
       {selectedRecord && (
         <InfoModal
           isOpen={!!selectedRecord}
-          onClose={() => setSelectedRecord(null)}
+          onClose={handleCloseInspector}
           title={`Analysis: ${selectedRecord.name}`}
           badge="Detailed Analysis Inspection"
           description={`Comprehensive metrics and execution hyperparameters for dataset: ${selectedRecord.datasetName}.`}
           actionText="Close Inspector"
+          size={showVisualizer ? '5xl' : '4xl'}
+          allowFullscreen={true}
+          showBackButton={true}
+          onBack={() => {
+            if (showVisualizer) {
+              setShowVisualizer(false);
+            } else {
+              handleCloseInspector();
+            }
+          }}
         >
-          <div className="space-y-4">
+          <div className="space-y-5">
             {/* Primary Metrics Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-[#050816]/70 border border-[#28D7FF]/20 text-xs font-mono">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-[#050816]/70 border border-[#28D7FF]/20 text-xs font-mono">
               <div>
                 <span className="text-[#A7B1C8] block text-[10px]">ANALYSIS ID</span>
                 <span className="text-white font-bold">{selectedRecord.id}</span>
@@ -245,62 +293,99 @@ export default function AnalysisTable({
 
             {/* Severity Breakdown Badges */}
             {recordDetails && (
-              <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono">
-                <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
+              <div className="grid grid-cols-3 gap-2.5 text-center text-xs font-mono">
+                <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20">
                   <span className="text-rose-300 block text-[10px] uppercase">High Severity</span>
-                  <span className="text-white font-bold text-sm">{recordDetails.highSeverityCount}</span>
+                  <span className="text-white font-bold text-base mt-0.5 block">{recordDetails.highSeverityCount}</span>
                 </div>
-                <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
                   <span className="text-amber-300 block text-[10px] uppercase">Medium Severity</span>
-                  <span className="text-white font-bold text-sm">{recordDetails.mediumSeverityCount}</span>
+                  <span className="text-white font-bold text-base mt-0.5 block">{recordDetails.mediumSeverityCount}</span>
                 </div>
-                <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+                <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20">
                   <span className="text-cyan-300 block text-[10px] uppercase">Low Severity</span>
-                  <span className="text-white font-bold text-sm">{recordDetails.lowSeverityCount}</span>
+                  <span className="text-white font-bold text-base mt-0.5 block">{recordDetails.lowSeverityCount}</span>
                 </div>
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/5">
-              <button
-                onClick={() => setShowVisualizer(!showVisualizer)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-mono border border-[#28D7FF]/30 bg-[#28D7FF]/10 text-[#28D7FF] hover:bg-[#28D7FF]/20 transition-all cursor-pointer"
-              >
-                <BarChart2 className="w-3.5 h-3.5" />
-                <span>{showVisualizer ? 'Hide Visualizations' : 'Show Interactive Visualizations'}</span>
-              </button>
+            {/* Action Buttons: Visualizations + Export/Preview Form Buttons */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/5">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowVisualizer(!showVisualizer)}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-mono transition-all cursor-pointer ${
+                    showVisualizer
+                      ? 'border border-[#28D7FF] bg-[#28D7FF]/20 text-[#28D7FF] font-bold shadow-sm'
+                      : 'border border-[#28D7FF]/30 bg-[#28D7FF]/10 text-[#28D7FF] hover:bg-[#28D7FF]/20'
+                  }`}
+                >
+                  <BarChart2 className="w-3.5 h-3.5" />
+                  <span>{showVisualizer ? 'Hide Visualizations' : 'Show Interactive Visualizations'}</span>
+                </button>
 
-              <button
-                onClick={() => downloadAnalysisReport(selectedRecord.id)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-mono border border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 transition-all cursor-pointer"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Download Report (.md)</span>
-              </button>
+                {showVisualizer && (
+                  <button
+                    type="button"
+                    onClick={() => setShowVisualizer(false)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-mono border border-white/10 bg-white/5 text-[#A7B1C8] hover:text-white transition-all cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Back to Summary</span>
+                  </button>
+                )}
+              </div>
 
-              <button
-                onClick={() => exportAnomaliesCsv(selectedRecord.id)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-mono border border-white/10 bg-white/5 text-[#A7B1C8] hover:text-white transition-all cursor-pointer"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Export CSV</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => openExportModal('markdown')}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-mono border border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 transition-all cursor-pointer"
+                  title="Inspect report before downloading"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download Report (.md)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openExportModal('csv')}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-mono border border-[#28D7FF]/30 bg-[#28D7FF]/10 text-[#28D7FF] hover:bg-[#28D7FF]/20 transition-all cursor-pointer"
+                  title="Preview outlier data table before downloading CSV"
+                >
+                  <Table className="w-3.5 h-3.5" />
+                  <span>Export CSV</span>
+                </button>
+              </div>
             </div>
 
             {/* Toggleable Visualizations Panel */}
             {showVisualizer && (
-              <div className="mt-4 pt-4 border-t border-white/10">
+              <div className="mt-4 pt-4 border-t border-white/10 space-y-4">
                 <GenomicVisualizations
                   data={vizData}
                   isLoading={isLoadingDetails}
-                  onDownloadReport={() => downloadAnalysisReport(selectedRecord.id)}
-                  onExportCsv={() => exportAnomaliesCsv(selectedRecord.id)}
+                  onBack={() => setShowVisualizer(false)}
+                  backButtonText="Back to Metrics Overview"
+                  allowFullscreen={true}
                 />
               </div>
             )}
           </div>
         </InfoModal>
+      )}
+
+      {/* Export & Data Preview Form Modal */}
+      {selectedRecord && (
+        <ExportPreviewModal
+          isOpen={exportPreviewOpen}
+          onClose={() => setExportPreviewOpen(false)}
+          analysisId={selectedRecord.id}
+          analysisName={selectedRecord.name}
+          datasetName={selectedRecord.datasetName}
+          initialFormat={exportPreviewFormat}
+        />
       )}
     </div>
   );
