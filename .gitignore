@@ -66,3 +66,5 @@ backend/data/*.db-wal
 backend/data/*.db-shm
 backend/data/uploads/*
 !backend/data/uploads/.gitkeep
+
+.vercel
